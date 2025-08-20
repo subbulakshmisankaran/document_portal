@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 
 class CustomLogger:
+    """ Custom logger module for Document Portal. """
     def __init__(self, logs_dir="logs"):
 
         # Create logs directory if doesnt exist
