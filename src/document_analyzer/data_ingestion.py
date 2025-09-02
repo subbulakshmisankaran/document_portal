@@ -6,7 +6,7 @@ from logger.custom_logger import CustomLogger
 from exception.custom_exception import DocumentPortalException 
 import re
 from typing import Optional
-
+from pathlib import Path
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9 _.\-()]+")
 
 def _sanitize_filename(name: str) -> str:
@@ -94,7 +94,6 @@ class DocumentHandler:
                              session_path=str(self.session_path))
 
         except Exception as e:
-            self.logger.error(f"Error initilaizing DocumentHandler: {e}")
             raise DocumentPortalException(e) from e
 
     def save_document(self, 

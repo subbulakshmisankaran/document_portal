@@ -5,7 +5,6 @@ venv/
 __pycache__/
 logs/
 *.pyc
-test.py
 .vscode/extensions.json
 data/
 .DS_Store

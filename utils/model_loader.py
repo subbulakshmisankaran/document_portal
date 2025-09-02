@@ -155,6 +155,8 @@ class ModelLoader:
             
             # Default provider: Groq if no LLM_PROVIDER is set .env
             provider_key = os.getenv("LLM_PROVIDER", "groq")
+            logger.info(f"Loaded the provider: {provider_key}")
+
             if provider_key not in llm_block:
                 raise KeyError(f"Provider '{provider_key} not found in the config['llm']")
         
