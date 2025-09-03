@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 from typing import Optional, List, Dict, Any, Union
 
 class Metadata(BaseModel):
@@ -11,3 +11,11 @@ class Metadata(BaseModel):
     Language: str = Field(description="Language of the document")
     PageCount: Union[int, str] = Field(description="Number of pages in the document")
     SentimentTone: str = Field(description="Overall sentiment/tone of the document")
+
+
+class ChangeFormat(BaseModel):
+    Page: str
+    Changes: str
+
+class SummaryResponse(RootModel[list[ChangeFormat]]):
+    pass
