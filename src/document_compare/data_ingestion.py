@@ -4,6 +4,9 @@ from logger.custom_logger import CustomLogger
 from exception.custom_exception import DocumentPortalException
 from typing import Tuple, Optional, List
 import os
+from datetime import datetime
+import uuid
+import shutil
 
 class DocumentIngestion:
     """
@@ -15,61 +18,73 @@ class DocumentIngestion:
     - Extracting text content from PDF files
     - Validating file types and handling errors gracefully
     """
-    def __init__(self, base_dir:str="./data/document_compare"):
+    def __init__(self, 
+                 base_dir:str="./data/document_compare",
+                 session_id: str=None):
+
         self.logger = CustomLogger().get_logger(__name__)
         try:
             self.base_dir = Path(os.getcwd()) / base_dir
-            self.base_dir.mkdir(parents=True, exist_ok=True)
-            self.logger.info(f"DocumentIngestion initialized", 
-                           extra={"base_directory": str(self.base_dir)})
+
+            # Generate unique session ID with timestamp and random component
+            self.session_id = session_id or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+
+            # Create session-specific directory for file isolation
+            self.session_path = self.base_dir / self.session_id
+            self.session_path.mkdir(parents=True, exist_ok=True)
+
+            self.logger.info("DocumentIngestion initialized successfully", 
+                             base_directory = str(self.base_dir),
+                             session_id=self.session_id, 
+                             session_path=str(self.session_path))
 
         except Exception as e:
             error_msg = f"Error while initializing DocumentIngestion: {str(e)}"
             self.logger.error(error_msg)
             raise DocumentPortalException(error_msg)
         
-    def delete_existing_files(self)-> None:
-        """
-        Clean up all files in the base directory.
+    # def delete_existing_files(self)-> None:
+    #     """
+    #     Clean up all files in the base directory.
         
-        Removes all files (not directories) from the base directory to prepare
-        for new file uploads. Logs each deletion for audit trail.
+    #     Removes all files (not directories) from the base directory to prepare
+    #     for new file uploads. Logs each deletion for audit trail.
         
-        Raises:
-            DocumentPortalException: If file deletion fails
-        """
-        try:
-            # Check if directory exists and is actually a directory
-            if not self.base_dir.exists():
-                self.logger.warning(f"Base directory does not exist: {self.base_dir}")
-                return
+    #     Raises:
+    #         DocumentPortalException: If file deletion fails
+    #     """
+    #     try:
+    #         # Check if directory exists and is actually a directory
+    #         if not self.base_dir.exists():
+    #             self.logger.warning(f"Base directory does not exist: {self.base_dir}")
+    #             return
 
-            if not self.base_dir.is_dir():
-                error_msg = f"Base path is not a directory: {self.base_dir}"
-                self.logger.error(error_msg)
-                raise ValueError(error_msg)
+    #         if not self.base_dir.is_dir():
+    #             error_msg = f"Base path is not a directory: {self.base_dir}"
+    #             self.logger.error(error_msg)
+    #             raise ValueError(error_msg)
 
-            deleted_count = 0
-            # Iterate through all items in the directory
-            for file_path in self.base_dir.iterdir():
-                if file_path.is_file():
-                    try:
-                        file_path.unlink()
-                        deleted_count +=1
-                        self.logger.info("File deleted", extra={"path": file_path.name})
-                    except OSError as file_error:
-                        self.logger.error(f"Could not delete file {file_path.name}: {file_error}")
+    #         deleted_count = 0
+    #         # Iterate through all items in the directory
+    #         for file_path in self.base_dir.iterdir():
+    #             if file_path.is_file():
+    #                 try:
+    #                     file_path.unlink()
+    #                     deleted_count +=1
+    #                     self.logger.info("File deleted", extra={"path": file_path.name})
+    #                 except OSError as file_error:
+    #                     self.logger.error(f"Could not delete file {file_path.name}: {file_error}")
 
-            self.logger.info(f"Directory cleanup completed",
-                             extra={
-                                 "directory": str(self.base_dir),
-                                 "files_deleted": deleted_count
-                            })
+    #         self.logger.info(f"Directory cleanup completed",
+    #                          extra={
+    #                              "directory": str(self.base_dir),
+    #                              "files_deleted": deleted_count
+    #                         })
 
-        except Exception as e:
-            error_msg = f"Error while deleting existing files: {str(e)}"
-            self.logger.error(error_msg)
-            raise DocumentPortalException(error_msg)
+    #     except Exception as e:
+    #         error_msg = f"Error while deleting existing files: {str(e)}"
+    #         self.logger.error(error_msg)
+    #         raise DocumentPortalException(error_msg)
 
 
     def save_uploaded_files(self,
@@ -100,13 +115,10 @@ class DocumentIngestion:
             if not actual_file.name.lower().endswith(".pdf"):
                 raise ValueError(f"Actual file must be PDF, got: {actual_file.name}")
 
-            # Clean up existing files first
-            self.delete_existing_files()
-            self.logger.info("Existing files deleted successfully")
 
             # Construct file paths in the base directory
-            ref_path = self.base_dir / ref_file.name
-            actual_path = self.base_dir / actual_file.name
+            ref_path = self.session_path / ref_file.name
+            actual_path = self.session_path / actual_file.name
 
             # Check for filename conflicts
             if ref_path == actual_path:
@@ -234,25 +246,25 @@ class DocumentIngestion:
 
     def combine_documents(self)-> str:
         try:
-            # Check if base directory exists
-            if not self.base_dir.exists():
-                error_msg = f"Base directory does not exist: {self.base_dir}"
+            # Check if session directory exists
+            if not self.session_path.exists():
+                error_msg = f"Session directory does not exist: {self.session_path}"
                 self.logger.error(error_msg)
                 raise DocumentPortalException(error_msg)
             
-            self.logger.info(f"Starting document combination from directory: {self.base_dir}")
+            self.logger.info(f"Starting document combination from directory: {self.session_path}")
 
             # Dictionary to store document contents with metadata
             doc_contents_dict = {}
 
             # Get all PDF files in the directory (case-insensitive)
             pdf_files = sorted(
-                [f for f in self.base_dir.iterdir() 
+                [f for f in self.session_path.iterdir() 
                 if f.is_file() and f.name.lower().endswith(".pdf")]
             )
             
             if not pdf_files:
-                warning_msg = f"No PDF files found in directory: {self.base_dir}"
+                warning_msg = f"No PDF files found in directory: {self.session_path}"
                 self.logger.warning(warning_msg)
                 return ""  # Return empty string instead of raising exception
             
@@ -322,5 +334,50 @@ class DocumentIngestion:
         except Exception as e:
             # Handle unexpected errors
             error_msg = f"Unexpected error while combining documents: {str(e)}"
-            self.logger.error(error_msg, extra={"base_dir": str(self.base_dir)})
+            self.logger.error(error_msg, extra={"Session Dir": str(self.session_path)})
             raise DocumentPortalException(error_msg)
+        
+
+    def cleanup_sessions(self, keep_latest: int = 3):
+        try:
+            # Validate input to prevent accidental deletion of all sessions
+            if keep_latest < 1:
+                self.logger.warning(f"Invalid keep_latest value: {keep_latest}, using default of 3")
+                keep_latest = 3
+            
+            self.logger.info(
+                "Starting session cleanup", 
+                base_dir=str(self.base_dir), 
+                keep_latest=keep_latest
+            )
+            
+            # Check if base directory exists
+            if not self.base_dir.exists():
+                self.logger.info("Base directory does not exist, nothing to clean")
+                return
+
+            # Get all session directories and sort by creation time (newest first)
+            # Using creation time ensures we keep the most recently created sessions
+            sessions = sorted(
+                [f for f in self.base_dir.iterdir() if f.is_dir()], 
+                key=lambda x: x.stat().st_ctime,  # Sort by creation time
+                reverse=True  # Most recent first
+            )
+            self.logger.info(f"Found {len(sessions)} session directories")
+
+            # Delete old session directories
+            for folder in sessions[keep_latest:]:
+                # Use shutil.rmtree for efficient directory deletion
+                # ignore_errors=True ensures individual file permission issues 
+                # don't stop the entire cleanup process
+                shutil.rmtree(folder, ignore_errors=True)
+
+                # Verify deletion was successful
+                if not folder.exists():
+                    self.logger.info("Old session folder deleted", path=str(folder))
+                else:
+                    self.logger.warning("Failed to completely delete session", path=str(folder))
+
+        except Exception as e:
+            self.logger.error("Error cleaning old sessions", error=str(e))
+            raise DocumentPortalException("Error cleaning old sessions", e) from e
