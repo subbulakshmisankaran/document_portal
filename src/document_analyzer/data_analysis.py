@@ -54,7 +54,7 @@ class DocumentAnalyzer:
         if self._chain == None:
             # Build the processing pipeline: prompt -> LLM -> parser
             self._chain = self.prompt | self.llm | self.fixing_parser
-            self.logger.info("Meta-data analysis chain initialized")
+            self.logger.info("Meta-data analysis chain initialized")    
 
         return self._chain
 
