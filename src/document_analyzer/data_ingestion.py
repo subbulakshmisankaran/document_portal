@@ -7,6 +7,8 @@ from exception.custom_exception import DocumentPortalException
 import re
 from typing import Optional
 from pathlib import Path
+import shutil
+
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9 _.\-()]+")
 
 def _sanitize_filename(name: str) -> str:
@@ -166,14 +168,14 @@ class DocumentHandler:
                     chunk = file_stream.read(chunk_size)
                     if not chunk:
                         break
-                    
+
                     # Check size limit incrementally
                     total_size += len(chunk)
                     if total_size > max_size_bytes:
                         error_msg = f"File too large. Max {max_size_mb}MB allowed, got {total_size / (1024*1024):.1f}MB"
                         self.logger.error(error_msg, session_id=self.session_id, total_size=total_size)
                         raise DocumentPortalException(error_msg)
-                    
+
                     # Validate PDF magic header on first chunk
                     if not pdf_header_checked:
                         if not chunk.startswith(b'%PDF-'):
@@ -182,17 +184,17 @@ class DocumentHandler:
                             raise DocumentPortalException(error_msg)
                         pdf_header_checked = True
                         self.logger.debug("PDF header validation passed", session_id=self.session_id)
-                    
+
                     # Write chunk to disk
                     f.write(chunk)
-                
+
                 # Ensure all data is written to disk
                 f.flush()
                 os.fsync(f.fileno())
-            
+
             # Atomic move to final location (prevents partial writes)
             os.replace(temp_path, file_path)
-            
+
             self.logger.info(
                 "Document saved successfully",
                 session_id=self.session_id,
@@ -318,44 +320,57 @@ class DocumentHandler:
             raise DocumentPortalException(error_msg) from e
 
 
-    def cleanup_session(self):
+    def cleanup_old_sessions(self, keep_latest: int = 3):
         """
-        Remove all files in the current session directory.
-        Useful for cleanup after processing is complete.
+        Remove old session directories while keeping the most recent ones.
+    
+        Automatically cleans up disk space by deleting older session directories,
+        preserving only the specified number of most recent sessions for debugging
+        and operational purposes.
 
-        Raises:
-            DocumentPortalException: If cleanup fails
         """
         try:
-            self.logger.info(
-                "Starting session cleanup",
-                session_id=self.session_id,
-                session_path=str(self.session_path)
-            )
-            
-            files_deleted = 0
-            for file_path in self.session_path.iterdir():
-                if file_path.is_file(): # Path exists and its a regular file
-                    file_path.unlink()
-                    files_deleted += 1
-                    self.logger.debug(
-                        "File deleted during cleanup",
-                        session_id=self.session_id,
-                        deleted_file=str(file_path)
-                    )
-            
-            self.session_path.rmdir()
+            # Validate input to prevent accidental deletion of all sessions
+            if keep_latest < 1:
+                self.logger.warning(f"Invalid keep_latest value: {keep_latest}, using default of 3")
+                keep_latest = 3
             
             self.logger.info(
-                "Session cleanup completed successfully",
-                session_id=self.session_id,
-                files_deleted=files_deleted
+                "Starting session cleanup", 
+                data_dir=str(self.data_dir), 
+                keep_latest=keep_latest
             )
             
+            # Check if data directory exists
+            if not self.data_dir.exists():
+                self.logger.info("Data directory for DocumentAnalyzer does not exist, nothing to clean")
+                return
+
+            # Get all session directories and sort by creation time (newest first)
+            # Using creation time ensures we keep the most recently created sessions
+            sessions = sorted(
+                [f for f in self.data_dir.iterdir() if f.is_dir()], 
+                key=lambda x: x.stat().st_ctime,  # Sort by creation time
+                reverse=True  # Most recent first
+            )
+            self.logger.info(f"Found {len(sessions)} session directories")
+
+            # Delete old session directories
+            for folder in sessions[keep_latest:]:
+                # Use shutil.rmtree for efficient directory deletion
+                # ignore_errors=True ensures individual file permission issues 
+                # don't stop the entire cleanup process
+                shutil.rmtree(folder, ignore_errors=True)
+
+                # Verify deletion was successful
+                if not folder.exists():
+                    self.logger.info("Old session folder deleted", path=str(folder))
+                else:
+                    self.logger.warning("Failed to completely delete session", path=str(folder))
+
         except Exception as e:
-            error_msg = f"Error cleaning up session: {e}"
-            self.logger.error(error_msg, session_id=self.session_id, error=str(e))
-            raise DocumentPortalException(error_msg) from e
+            self.logger.error("Error cleaning old sessions", error=str(e))
+            raise DocumentPortalException("Error cleaning old sessions", e) from e
 
 
 if __name__ == "__main__":
@@ -373,7 +388,7 @@ if __name__ == "__main__":
         content = doc_handler.read_document(saved_path)
         print("PDF content")
         print(content[:1500])
-        doc_handler.cleanup_session()
+        doc_handler.cleanup_old_sessions()
 
     except Exception as e:
         print(f"Error: {e}")

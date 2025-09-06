@@ -82,7 +82,7 @@ def test_compare_documents():
     print("\n=== COMPARISON CHANGES (First Row) ===\n")
     print(comparison_df.iloc[0]['Changes'])
 
-    doc_ingestion.cleanup_sessions()
+    doc_ingestion.cleanup_old_sessions()
 
 if __name__ == "__main__":
     test_compare_documents()

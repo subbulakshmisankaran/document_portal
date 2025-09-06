@@ -28,12 +28,12 @@ class DocumentComparatorLLM:
             # Primary parser converts LLM output to Pydantic SummaryResponse objects
             self.parser = JsonOutputParser(pydantic_object=SummaryResponse)
 
-            
+
             # Store the document analysis prompt template from the registry
             # PROMPT_REGISTRY centralizes all prompt templates for maintainability
-            self.prompt = PROMPT_REGISTRY["document_comparison"]
+            self.prompt = PROMPT_REGISTRY[PromptType.DOCUMENT_COMPARISON.value]
             self.logger.info("DocumentComparatorLLM initialized successfully")
-            
+
         except Exception as e:
             self.logger.error(str(e))
             raise DocumentPortalException(e)

@@ -38,12 +38,12 @@ class DocumentAnalyzer:
                 parser=self.parser,
                 llm = self.llm
                 )
-            
+
             # Store the document analysis prompt template from the registry
             # PROMPT_REGISTRY centralizes all prompt templates for maintainability
-            self.prompt = PROMPT_REGISTRY["document_analysis"]
+            self.prompt = PROMPT_REGISTRY[PromptType.DOCUMENT_ANALYSIS.value]
             self.logger.info("DocumentAnalyzer initialized successfully")
-            
+
         except Exception as e:
             self.logger.error(str(e))
             raise DocumentPortalException(e)

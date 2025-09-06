@@ -1,4 +1,5 @@
 from langchain_core.prompts import ChatPromptTemplate
+from enum import Enum
 
 # Prompt for document analysis
 document_analysis_prompt = ChatPromptTemplate.from_template("""
@@ -38,10 +39,17 @@ Your response must be a JSON array following this schema:
 {format_instruction}
 """)
 
+# Prompt for contextualize question
+contextualize_question_prompt = ChatPromptTemplate.from_template("""
+""")
 
-
+# Prompt for context qa
+context_qa_prompt = ChatPromptTemplate.from_template("""
+""")
 
 PROMPT_REGISTRY = {
-    "document_analysis": document_analysis_prompt,
-    "document_comparison": document_comparison_prompt,
+    "document_analysis"         :   document_analysis_prompt,
+    "document_comparison"       :   document_comparison_prompt,
+    "contextualize_question"    :   contextualize_question_prompt,
+    "context_qa"                :   context_qa_prompt,
 }

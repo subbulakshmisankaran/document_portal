@@ -338,7 +338,15 @@ class DocumentIngestion:
             raise DocumentPortalException(error_msg)
         
 
-    def cleanup_sessions(self, keep_latest: int = 3):
+    def cleanup_old_sessions(self, keep_latest: int = 3):
+        """
+        Remove old session directories while keeping the most recent ones.
+    
+        Automatically cleans up disk space by deleting older session directories,
+        preserving only the specified number of most recent sessions for debugging
+        and operational purposes.
+
+        """
         try:
             # Validate input to prevent accidental deletion of all sessions
             if keep_latest < 1:
