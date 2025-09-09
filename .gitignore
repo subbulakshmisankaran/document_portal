@@ -8,3 +8,4 @@ logs/
 .vscode/extensions.json
 data/
 .DS_Store
+faiss_index

@@ -4,7 +4,7 @@ from logger.custom_logger import CustomLogger
 from exception.custom_exception import DocumentPortalException
 from typing import Tuple, Optional, List
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import shutil
 
@@ -27,7 +27,7 @@ class DocumentIngestion:
             self.base_dir = Path(os.getcwd()) / base_dir
 
             # Generate unique session ID with timestamp and random component
-            self.session_id = session_id or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+            self.session_id = session_id or f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
 
             # Create session-specific directory for file isolation
             self.session_path = self.base_dir / self.session_id

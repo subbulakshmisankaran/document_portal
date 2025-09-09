@@ -95,7 +95,7 @@ class ModelLoader:
                 raise DocumentPortalException(e) from e
         return val
 
-    def load_embeddings(self)-> GoogleGenerativeAIEmbeddings:
+    def load_embedding_model(self)-> GoogleGenerativeAIEmbeddings:
         """
         Load and return the embedding model specified in the configuration.
 
