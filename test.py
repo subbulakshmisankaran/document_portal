@@ -134,7 +134,7 @@ def test_conversational_rag_on_pdf(pdf_path:str,
 if __name__ == "__main__":
     # Example PDF path and question
     pdf_path = "/Users/subbulakshmisankaran/AgenticAI/LLMOps/document_portal/data/single_document_chat/Attention_is_all_you_need.pdf"
-    question = "What is this document about?"
+    question = "What is the main topic of the document?"
 
     if not Path(pdf_path).exists():
         print(f"PDF file doesnt exist at: {pdf_path}")
