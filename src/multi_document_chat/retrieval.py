@@ -7,6 +7,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
+from langchain_core.messages import BaseMessage
 
 from utils.model_loader import ModelLoader
 from logger.custom_logger import CustomLogger
@@ -181,10 +182,47 @@ class ConversationalRAG:
             self.logger.error(error_message)
             raise DocumentPortalException(error_message)
 
-    
-    def invoke(self):
+    def invoke(self, user_input:str, chat_history: Optional[List[BaseMessage]] = None)->str:
+        """
+        Invoke the conversational RAG chain.
+        
+        Args:
+            input_text (str): User input/question
+            chat_history (Optional[List[BaseMessage]], optional): Previous conversation history
+            
+        Returns:
+            str: Generated response
+            
+        Raises:
+            DocumentPortalException: If invocation fails
+        """
         try:
-            pass
+            # Initialize RAG chain if not already built
+            if self.chain is None:
+                self._build_lcel_chain()
+
+            # Prepare input data
+            chat_history = chat_history or []
+            payload = {
+                "input": user_input,
+                "chat_history": chat_history,
+            }
+
+            # Invoke the RAG chain
+            answer = self.chain.invoke(payload)
+            if not answer:
+                self.logger.warning("No answer generated",
+                                    user_input=user_input,
+                                    session_id=self.session_id)
+                return "No answe generated"
+            
+            self.logger.info("Chain invoked and generated an answer",
+                             user_input=user_input,
+                             session_id=self.session_id,
+                             answer_len=len(answer),
+                             answer_preview = answer[:100])
+            return answer
+
         except Exception as e:
             error_message = f"Failed to invoke ConversationalRAG chain: {str(e)}"
             self.logger.error(error_message)
@@ -291,3 +329,4 @@ class ConversationalRAG:
             error_message = f"Failed to build lcel chain: {str(e)}"
             self.logger.error(error_message, session_id=self.session_id)
             raise DocumentPortalException(error_message)
+        
