@@ -68,7 +68,6 @@ class ConversationalRAG:
             
             self.chain = None # Lazy initialization
 
-            self._build_lcel_chain()
             self.logger.info("Conversational RAG initialized successfully", 
                              session_id = self.session_id,
                              has_retriever = self.retriever is not None,
