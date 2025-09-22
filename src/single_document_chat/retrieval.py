@@ -24,16 +24,16 @@ class ConversationalRAG:
             self.llm = self._load_llm()
             self.retriever = retriever
 
-            self.contextualize_prompt = PROMPT_REGISTRY[PromptType.CONTEXTUALIZE_QUESTION]
-            self.qa_prompt = PROMPT_REGISTRY[PromptType.CONTEXT_QA]
+            self.standalone_question_prompt = PROMPT_REGISTRY[PromptType.STANDALONE_QUESTION]
+            self.grounded_qa_prompt = PROMPT_REGISTRY[PromptType.GROUNDED_QA]
 
             self.history_aware_retriever = create_history_aware_retriever(
-                self.llm, self.retriever, self.contextualize_prompt)
+                self.llm, self.retriever, self.standalone_question_prompt)
 
             self.logger.info("Created history aware retriever",
                              session_id=session_id)
 
-            self.qa_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
+            self.qa_chain = create_stuff_documents_chain(self.llm, self.grounded_qa_prompt)
             self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.qa_chain)
             self.logger.info("Created RAG chain",
                              session_id=session_id)

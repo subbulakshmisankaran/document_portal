@@ -24,5 +24,5 @@ class SummaryResponse(RootModel[list[ChangeFormat]]):
 class PromptType(str, Enum):
     DOCUMENT_ANALYSIS = "document_analysis"
     DOCUMENT_COMPARISON = "document_comparison"
-    CONTEXTUALIZE_QUESTION = "contextualize_question"
-    CONTEXT_QA = "context_qa"
+    STANDALONE_QUESTION = "standalone_question"
+    GROUNDED_QA = "grounded_qa"

@@ -2,7 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from enum import Enum
 
 # Prompt for document analysis
-document_analysis_prompt = ChatPromptTemplate.from_template("""
+DOCUMENT_ANALYSIS_PROMPT = ChatPromptTemplate.from_template("""
 You are a highly capable assistant trained to analyze and summarize documents.
 Return ONLY valid JSON matching the exact schema below
                                           
@@ -15,7 +15,7 @@ Remember: Output must be valid JSON only, no additional commentary.
 """)
 
 # Prompt for document comparison
-document_comparison_prompt = ChatPromptTemplate.from_template("""
+DOCUMENT_COMPARISON_PROMPT = ChatPromptTemplate.from_template("""
 You are a document comparison assistant. 
 
 You will receive two versions of a PDF document (V1 and V2). Each is split page by page.
@@ -40,7 +40,7 @@ Your response must be a JSON array following this schema:
 """)
 
 # Prompt for contextual question rewriting
-contextualize_question_prompt = ChatPromptTemplate.from_messages([
+STANDALONE_QUESTION_PROMPT = ChatPromptTemplate.from_messages([
     ("system", (
         "Given a conversation history and the most recent user query, rewrite the query as a standalone question "
         "that makes sense without relying on the previous context. Do not provide an answer—only reformulate the "
@@ -51,7 +51,7 @@ contextualize_question_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Prompt for answering based on context
-context_qa_prompt = ChatPromptTemplate.from_messages([
+GROUNDED_QA_PROMPT = ChatPromptTemplate.from_messages([
     ("system", (
         "You are an assistant designed to answer questions using the provided context. Rely only on the retrieved "
         "information to form your response. If the answer is not found in the context, respond with 'I don't know.' "
@@ -64,8 +64,8 @@ context_qa_prompt = ChatPromptTemplate.from_messages([
 
 
 PROMPT_REGISTRY = {
-    "document_analysis"         :   document_analysis_prompt,
-    "document_comparison"       :   document_comparison_prompt,
-    "contextualize_question"    :   contextualize_question_prompt,
-    "context_qa"                :   context_qa_prompt,
+    "document_analysis"         :   DOCUMENT_COMPARISON_PROMPT,
+    "document_comparison"       :   DOCUMENT_COMPARISON_PROMPT,
+    "standalone_question"       :   STANDALONE_QUESTION_PROMPT,
+    "grounded_qa"               :   GROUNDED_QA_PROMPT,
 }
