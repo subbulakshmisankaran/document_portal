@@ -238,10 +238,10 @@ class ConversationalRAG:
             DocumentPortalException: If LLM loading fails
         """
         try:
-            if self.model_loder is None:
+            if self.model_loader is None:
                 raise DocumentPortalException(f"Model loader is not initialized")
 
-            llm = self.model_loder.load_llm()
+            llm = self.model_loader.load_llm()
             if llm is None:
                 raise DocumentPortalException(f"LLM model could not be loaded")
 

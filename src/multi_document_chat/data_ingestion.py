@@ -234,7 +234,7 @@ class MultiDocIngestor:
         """
         try:
             # Generate unique filename
-            unique_filename = f"{uuid.uuid4().hex[:8]}{extension}"
+            unique_filename = Path(uploaded_file.name).name
             temp_path = self.session_temp_dir / unique_filename
             
             # Stream file with size checking
@@ -404,19 +404,19 @@ class MultiDocIngestor:
             
             self.logger.info(
                 "Starting session cleanup", 
-                session_dir=str(self.session_temp_dir), 
+                session_dir=str(self.temp_dir), 
                 keep_latest=keep_latest
             )
             
             # Check if base directory exists
-            if not self.session_temp_dir.exists():
+            if not self.temp_dir.exists():
                 self.logger.info("Session base directory does not exist, nothing to clean")
                 return
 
             # Get all session directories and sort by creation time (newest first)
             # Using creation time ensures we keep the most recently created sessions
             sessions = sorted(
-                [f for f in self.session_temp_dir.iterdir() if f.is_dir()], 
+                [f for f in self.temp_dir.iterdir() if f.is_dir()], 
                 key=lambda x: x.stat().st_ctime,  # Sort by creation time
                 reverse=True  # Most recent first
             )

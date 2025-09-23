@@ -90,56 +90,108 @@
 #     test_compare_documents()
 
 ## Test code for document chat functionality
-import os
-from pathlib import Path
-from utils.model_loader import ModelLoader
-from langchain_community.vectorstores import FAISS
-from src.single_document_chat.data_ingestion import SingleDocIngestor
-from src.single_document_chat.retrieval import ConversationalRAG
-import sys
+# import os
+# from pathlib import Path
+# from utils.model_loader import ModelLoader
+# from langchain_community.vectorstores import FAISS
+# from src.single_document_chat.data_ingestion import SingleDocIngestor
+# from src.single_document_chat.retrieval import ConversationalRAG
+# import sys
 
-FAISS_INDEX_PATH = Path("faiss_index")
+# FAISS_INDEX_PATH = Path("faiss_index")
 
-def test_conversational_rag_on_pdf(pdf_path:str,
-                                   question:str):
+# def test_conversational_rag_on_pdf(pdf_path:str,
+#                                    question:str):
     
+#     try:
+#         model_loader = ModelLoader()
+#         if FAISS_INDEX_PATH.exists():
+#             print("Loading existing FAISS index...")
+
+#             embedding_model = model_loader.load_embedding_model()
+#             vector_store = FAISS.load_local(folder_path=str(FAISS_INDEX_PATH),
+#                                             embeddings=embedding_model,
+#                                             allow_dangerous_deserialization=True)
+#             retriever = vector_store.as_retriever(search_type="similarity",
+#                                                   search_kwargs={"k": 5})
+#         else:
+#             print("FAISS index not found. Hence creating one")
+#             with open(pdf_path, "rb") as f:
+#                 uploaded_files = [f]
+#                 ingestor = SingleDocIngestor()
+#                 retriever = ingestor.ingest_files(uploaded_files)
+
+#         print("Running Conversational RAG...")
+#         session_id = "test_conversational_rag"
+#         rag = ConversationalRAG(session_id=session_id,
+#                                 retriever=retriever)
+#         response = rag.invoke(question)
+#         print(f"\nQuestion: {question}\nAnswer: {response}")
+#     except Exception as e:
+#         print(f"Test failed: {str(e)}")
+#         sys.exit(1)
+
+# if __name__ == "__main__":
+#     # Example PDF path and question
+#     pdf_path = "/Users/subbulakshmisankaran/AgenticAI/LLMOps/document_portal/data/single_document_chat/Attention_is_all_you_need.pdf"
+#     question = "What is the main topic of the document?"
+
+#     if not Path(pdf_path).exists():
+#         print(f"PDF file doesnt exist at: {pdf_path}")
+#         sys.exit(1)
+
+#     # Run the test
+#     test_conversational_rag_on_pdf(pdf_path,
+#                                    question)
+
+
+# Test code for multi-doc chat
+import sys
+from pathlib import Path
+from src.multi_document_chat.data_ingestion import MultiDocIngestor
+from src.multi_document_chat.retrieval import ConversationalRAG
+
+
+def test_document_ingestion_and_rag_chain():
     try:
-        model_loader = ModelLoader()
-        if FAISS_INDEX_PATH.exists():
-            print("Loading existing FAISS index...")
+        test_files = ["data/multi_document_chat/market_analysis_report.docx",
+                      "data/multi_document_chat/NIPS-2017-attention-is-all-you-need-Paper.pdf",
+                      "data/multi_document_chat/sample.pdf",
+                      "data/multi_document_chat/state_of_the_union.txt",
+                      ]
+        uploaded_files = []
+        for file in test_files:
+            if Path(file).exists():
+                uploaded_files.append(open(file, "rb")) # appending the file handle after opening
+            else:
+                print(f"File doesnt exist: {file}")
+        
+        if not uploaded_files:
+            print("Files not found for uoploading")
+            sys.exit(1)
 
-            embedding_model = model_loader.load_embedding_model()
-            vector_store = FAISS.load_local(folder_path=str(FAISS_INDEX_PATH),
-                                            embeddings=embedding_model,
-                                            allow_dangerous_deserialization=True)
-            retriever = vector_store.as_retriever(search_type="similarity",
-                                                  search_kwargs={"k": 5})
-        else:
-            print("FAISS index not found. Hence creating one")
-            with open(pdf_path, "rb") as f:
-                uploaded_files = [f]
-                ingestor = SingleDocIngestor()
-                retriever = ingestor.ingest_files(uploaded_files)
+        doc_ingestor = MultiDocIngestor()
+        ingested_retriever = doc_ingestor.ingest_files(uploaded_files)
+        doc_ingestor.cleanup_old_sessions()
 
-        print("Running Conversational RAG...")
-        session_id = "test_conversational_rag"
-        rag = ConversationalRAG(session_id=session_id,
-                                retriever=retriever)
-        response = rag.invoke(question)
-        print(f"\nQuestion: {question}\nAnswer: {response}")
+        for f in uploaded_files:
+            f.close()
+
+        session_id = "test_multi_doc_chat"
+
+        rag_chain = ConversationalRAG(session_id=session_id,
+                                      retriever=ingested_retriever)  
+        question = "What is attention mechanism?"
+
+        answer = rag_chain.invoke(question)
+        print("\n Question: ", question)
+        print("\n Answer: ", answer)
     except Exception as e:
         print(f"Test failed: {str(e)}")
         sys.exit(1)
 
-if __name__ == "__main__":
-    # Example PDF path and question
-    pdf_path = "/Users/subbulakshmisankaran/AgenticAI/LLMOps/document_portal/data/single_document_chat/Attention_is_all_you_need.pdf"
-    question = "What is the main topic of the document?"
 
-    if not Path(pdf_path).exists():
-        print(f"PDF file doesnt exist at: {pdf_path}")
-        sys.exit(1)
+if __name__ == "__main__":
 
     # Run the test
-    test_conversational_rag_on_pdf(pdf_path,
-                                   question)
+    test_document_ingestion_and_rag_chain()
