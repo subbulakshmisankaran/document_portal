@@ -181,14 +181,17 @@ def test_document_ingestion_and_rag_chain():
 
         rag_chain = ConversationalRAG(session_id=session_id,
                                       retriever=ingested_retriever)  
-        question = "What is attention mechanism?"
+        question = "What is going on in Ukraine?"
+        #question = "What does attention mean?"
+        #question = "Who is Zelenskey and what did he say?"
 
         answer = rag_chain.invoke(question)
         print("\n Question: ", question)
         print("\n Answer: ", answer)
     except Exception as e:
-        print(f"Test failed: {str(e)}")
+        print("Unexpected failure during RAG invocation:")
         sys.exit(1)
+
 
 
 if __name__ == "__main__":

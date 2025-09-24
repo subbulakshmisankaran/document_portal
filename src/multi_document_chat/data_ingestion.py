@@ -69,7 +69,7 @@ class MultiDocIngestor:
         except Exception as e:
             error_message = f"Failed to initialize multi doc ingestor: {str(e)}"
             self.logger.error(error_message)
-            raise DocumentPortalException(error_message)
+            raise DocumentPortalException(error_message) from e
 
     def _init_logger(self):
         """Initialize logger with fallback to basic logging"""
@@ -264,7 +264,7 @@ class MultiDocIngestor:
                     f.flush()
                 
                 return temp_path, total_size
-                
+
             except Exception as e:
                 # Clean up on any error
                 if temp_path.exists():
@@ -352,7 +352,7 @@ class MultiDocIngestor:
 
             # Split documents into chunks
             splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
-                                                      chunk_overlap=300)
+                                                      chunk_overlap=400)
             chunks = splitter.split_documents(documents)
 
             self.logger.info("Documents split into chunks",

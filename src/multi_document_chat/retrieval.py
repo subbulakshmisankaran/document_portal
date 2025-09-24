@@ -3,7 +3,7 @@ from operator import itemgetter
 from typing import Optional, Any, List
 from pathlib import Path
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
@@ -78,7 +78,7 @@ class ConversationalRAG:
         except Exception as e:
             error_message = f"Failed to initialize ConversationalRAG: {str(e)}"
             self.logger.error(error_message)
-            raise DocumentPortalException(error_message)
+            raise DocumentPortalException(error_message) from e
 
 
     def _validate_init_params(self, 
@@ -136,7 +136,7 @@ class ConversationalRAG:
         except DocumentPortalException:
             raise
         except Exception as e:
-            raise DocumentPortalException(f"Failed to load prompts: {str(e)}")
+            raise DocumentPortalException(f"Failed to load prompts: {str(e)}") from e
 
     def load_retriever_from_faiss(self, index_path: str):
         """
@@ -179,7 +179,7 @@ class ConversationalRAG:
         except Exception as e:
             error_message = f"Failed to load retriever from FAISS index: {str(e)}"
             self.logger.error(error_message)
-            raise DocumentPortalException(error_message)
+            raise DocumentPortalException(error_message) from e
 
     def invoke(self, user_input:str, chat_history: Optional[List[BaseMessage]] = None)->str:
         """
@@ -213,7 +213,7 @@ class ConversationalRAG:
                 self.logger.warning("No answer generated",
                                     user_input=user_input,
                                     session_id=self.session_id)
-                return "No answe generated"
+                return "No answer generated"
             
             self.logger.info("Chain invoked and generated an answer",
                              user_input=user_input,
@@ -225,7 +225,7 @@ class ConversationalRAG:
         except Exception as e:
             error_message = f"Failed to invoke ConversationalRAG chain: {str(e)}"
             self.logger.error(error_message)
-            raise DocumentPortalException(error_message)
+            raise DocumentPortalException(error_message) from e
        
     def _load_llm(self):
         """
@@ -253,7 +253,7 @@ class ConversationalRAG:
         except Exception as e:
             error_message = f"Failed to load LLM model for ConversationalRAG: {str(e)}"
             self.logger.error(error_message)
-            raise DocumentPortalException(error_message)
+            raise DocumentPortalException(error_message) from e
         
     @staticmethod
     def _format_docs(docs: List[Document])->str:
@@ -280,6 +280,17 @@ class ConversationalRAG:
         Raises:
             DocumentPortalException: If chain building fails
         """
+        def tap(name):
+            def _tap(x):
+                # log, then pass-through unchanged
+                preview = x
+                if isinstance(x, str):
+                    preview = x[:200]
+                elif isinstance(x, list):
+                    preview = [getattr(d, "page_content", "")[:120] for d in x[:3]]
+                self.logger.info(f"[TAP] {name}", session_id=self.session_id, preview=preview)
+                return x
+            return RunnableLambda(_tap)
         try:
             if self.retriever is None:
                 raise DocumentPortalException("Retriever must be initialized before building chain")
@@ -301,12 +312,22 @@ class ConversationalRAG:
                 | self.standalone_question_prompt
                 | self.llm
                 | StrOutputParser()
+#                | tap("rewritten_question")
             )
 
             # Document retrieval chain
-            retrieve_docs = question_rewriter | self.retriever | self._format_docs
+            retrieve_docs = (
+                question_rewriter
+#                | tap("pre_retriever_input")
+                | self.retriever
+#                | tap("retrieved_docs")
+                | RunnableLambda(self._format_docs)
+#                | tap("formatted_context")
+            )
+            #retrieve_docs = question_rewriter | self.retriever | self._format_docs
 
             # Final RAG chain
+
             self.chain = (
                 {
                     "context": retrieve_docs,
@@ -327,5 +348,5 @@ class ConversationalRAG:
         except Exception as e:
             error_message = f"Failed to build lcel chain: {str(e)}"
             self.logger.error(error_message, session_id=self.session_id)
-            raise DocumentPortalException(error_message)
+            raise DocumentPortalException(error_message) from e
         
