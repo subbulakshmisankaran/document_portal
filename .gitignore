@@ -9,3 +9,4 @@ logs/
 data/
 .DS_Store
 faiss_index
+archive
