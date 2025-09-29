@@ -19,5 +19,8 @@ ipykernel==6.30.0
 streamlit==1.47.1
 pytest==8.4.1
 pypdf==5.8.0
+
+fastapi==0.116.1
+uvicorn==0.35.0
 cfn-lint
 -e .
